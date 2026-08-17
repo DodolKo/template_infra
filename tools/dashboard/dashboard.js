@@ -2,10 +2,10 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
-const BenchmarkEngine = require('./scripts/benchmark');
+const BenchmarkEngine = require('../../scripts/benchmark');
 
 function loadEnv() {
-  const envPath = path.join(__dirname, '.env');
+  const envPath = fs.existsSync(path.join(__dirname, '../../.env')) ? path.join(__dirname, '../../.env') : path.join(process.cwd(), '.env');
   const envVars = {};
   if (fs.existsSync(envPath)) {
     const lines = fs.readFileSync(envPath, 'utf8').split('\n');
