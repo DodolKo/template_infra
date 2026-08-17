@@ -4,7 +4,7 @@
   "description": "MAGI Architecture Infrastructure Benchmark Suite & Real-Time Dashboard",
   "main": "dashboard.js",
   "scripts": {
-    "start": "node dashboard.js",
+    "start": "node tools/dashboard/dashboard.js",
     "benchmark": "node scripts/benchmark.js"
   },
   "dependencies": {

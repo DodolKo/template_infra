@@ -7,5 +7,5 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
 EOSQL
 
 # Autoriser les connexions de réplication depuis n'importe quel conteneur du réseau
-echo "host replication $POSTGRES_REPLICATION_USER 0.0.0.0/0 md5" >> "$PGDATA/pg_hba.conf"
+echo "host replication $POSTGRES_REPLICATION_USER 0.0.0.0/0 scram-sha-256" >> "$PGDATA/pg_hba.conf"
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" -c "SELECT pg_reload_conf();"

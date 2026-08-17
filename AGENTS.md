@@ -17,7 +17,22 @@ Infrastructure haute disponibilité containerisée via Docker Compose :
 
 ---
 
-## 2. Éligibilité au Déploiement (Deployment Matrix)
+## 2. Kickstart Project (IA Onboarding)
+
+Si un utilisateur vous demande de démarrer un nouveau projet (ex: Knotly.link 2.0, Cinegear, etc.) basé sur ce boilerplate, voici la marche à suivre :
+
+1. **Exécuter le Wizard** : Lancez le script `./setup-project.sh` et répondez aux questions interactives selon les préférences de l'utilisateur (Génération des mots de passe sécurisés, structure Monorepo vs Standard).
+2. **Architecture des Dossiers** :
+   - Par défaut, utilisez les dossiers `apps/` (pour Next.js, React, etc.) et `packages/` (pour les paquets partagés) générés par le script.
+   - La racine doit rester propre, réservée à l'infrastructure (`infra/`), Docker, et aux scripts de monitoring.
+3. **Branchement MAGI** :
+   - Configurez les ORM de l'application (ex: Prisma, Drizzle) pour utiliser :
+     - Écritures : `postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${HAPROXY_WRITE_PORT}/${POSTGRES_DB}`
+     - Lectures : `postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${HAPROXY_READ_PORT}/${POSTGRES_DB}`
+
+---
+
+## 3. Éligibilité au Déploiement (Deployment Matrix)
 
 | Environnement / Cas d'Usage | Éligibilité | Note & Recommandation |
 | :--- | :--- | :--- |
@@ -27,15 +42,6 @@ Infrastructure haute disponibilité containerisée via Docker Compose :
 | **AWS / GCP / Azure Managed PaaS** | ❌ **Non Recommandé** | Préférer AWS RDS Multi-AZ / Cloud SQL (sauvegardes & failover managés). |
 | **Zero-Downtime Multi-DC Active-Active** | ❌ **Non Recommandé** | Préférer Patroni + Raft/Etcd + IP flottante sur 3 serveurs distants. |
 | **Instances très réduites (< 4 Go RAM)** | ❌ **Non Recommandé** | La stack complète nécessite au moins 4 à 8 Go de RAM sous charge. |
-
----
-
-## 3. Cartographie de la Documentation (`.docs/architecture/`)
-
-1. **[Cluster de Base de Données MAGI](file://./.docs/architecture/01-database-cluster.md)** : Réplication Primary/Replicas, PgBouncer, init scripts.
-2. **[Routage & Load Balancing HAProxy](file://./.docs/architecture/02-network-loadbalancing.md)** : Règles de routage, ports et stats.
-3. **[Couche Cache & Object Storage](file://./.docs/architecture/03-cache-storage-layer.md)** : Configuration Redis et MinIO.
-4. **[Opérations, Maintenance & Failover](file://./.docs/architecture/04-operations-maintenance.md)** : Commandes, Makefile, scripts de failover et Prometheus/Grafana.
 
 ---
 
@@ -50,7 +56,7 @@ Infrastructure haute disponibilité containerisée via Docker Compose :
    - **Lectures (`SELECT`)** : HAProxy port `5001` (équilibré entre `balthasar_db` et `casper_db`).
 
 3. **Variables d'Environnement** :
-   - Secrets et mots de passe toujours référencés via `.env`.
+   - Secrets et mots de passe toujours référencés via `.env`. Le `.env.example` sert de base.
 
 4. **Orchestration & CLI** :
    - Utiliser le `Makefile` (`make up`, `make monitoring`, `make test`, `make failover`).
