@@ -2,7 +2,7 @@
 # INFRASTRUCTURE ARCHITECTURE - UNIFIED COMMAND CLI
 # =================================================================
 
-.PHONY: help up down restart status test benchmark failover monitoring backup clean
+.PHONY: help up down restart status test benchmark failover watchdog dashboard backup clean
 
 help:
 	@echo "================================================================="
@@ -15,7 +15,8 @@ help:
 	@echo "  make status      - Display container health and running ports"
 	@echo "  make test        - Run replication & load balancing validation tests"
 	@echo "  make benchmark   - Run load test benchmark engine"
-	@echo "  make dashboard   - Launch local interactive TUI / Web dashboard"
+	@echo "  make dashboard   - Launch local Chaos Studio & Web dashboard (http://localhost:3010)"
+	@echo "  make watchdog    - Start automatic failover monitoring daemon"
 	@echo "  make failover    - Trigger emergency failover promotion script"
 	@echo "  make backup      - Create a logical backup of PostgreSQL primary"
 	@echo "  make clean       - Stop containers and remove volumes (DESTRUCTIVE)"
@@ -51,8 +52,12 @@ benchmark:
 	@npm run benchmark
 
 dashboard:
-	@echo "💻 Launching interactive management dashboard..."
+	@echo "💻 Launching interactive Chaos Studio & Management Dashboard..."
 	@npm start
+
+watchdog:
+	@echo "🛡️ Starting Automatic Failover Watchdog..."
+	@./scripts/failover-watchdog.sh
 
 failover:
 	@echo "💥 Triggering failover promotion script..."

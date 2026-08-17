@@ -17,20 +17,17 @@ fi
 read -p "Souhaitez-vous générer des mots de passe sécurisés aléatoires pour la base de données et le cache ? (y/N): " gen_pass
 if [[ "$gen_pass" =~ ^[Yy]$ ]]; then
     echo "🔒 Génération des mots de passe..."
-    # Generate random passwords
     NEW_PG_PASS=$(openssl rand -hex 16)
     NEW_PG_REP_PASS=$(openssl rand -hex 16)
     NEW_REDIS_PASS=$(openssl rand -hex 16)
     NEW_MINIO_PASS=$(openssl rand -hex 16)
     NEW_HAPROXY_PASS=$(openssl rand -hex 16)
     
-    # Replace in .env (macOS sed compatibility)
     sed -i.bak "s/POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$NEW_PG_PASS/g" .env
     sed -i.bak "s/POSTGRES_REPLICATION_PASSWORD=.*/POSTGRES_REPLICATION_PASSWORD=$NEW_PG_REP_PASS/g" .env
     sed -i.bak "s/REDIS_PASSWORD=.*/REDIS_PASSWORD=$NEW_REDIS_PASS/g" .env
     sed -i.bak "s/MINIO_PASSWORD=.*/MINIO_PASSWORD=$NEW_MINIO_PASS/g" .env
     
-    # Add HAPROXY_STATS_PASSWORD if not exists
     if ! grep -q "HAPROXY_STATS_PASSWORD" .env; then
         echo "HAPROXY_STATS_PASSWORD=$NEW_HAPROXY_PASS" >> .env
     else
@@ -38,7 +35,6 @@ if [[ "$gen_pass" =~ ^[Yy]$ ]]; then
     fi
     rm -f .env.bak
     
-    # Update pgbouncer.ini to match the new password so it stays frictionless
     sed -i.bak "s/password=[^ ]*/password=$NEW_PG_PASS/g" infra/pgbouncer/pgbouncer.ini
     rm -f infra/pgbouncer/pgbouncer.ini.bak
     
@@ -48,7 +44,30 @@ else
 fi
 
 echo ""
-# 3. Choix de l'architecture du projet (Turborepo vs Standard)
+# 3. Profil de Monitoring & Dashboard
+echo "📊 Profil de Monitoring & Consommation Mémoire :"
+echo "1) Minimal Sandbox (Recommandé) : DB Cluster + Redis + MinIO + Dashboard Minimal (:3010)"
+echo "2) Full Stack Monitoring : Inclut Prometheus (:9090) + Grafana (:3000) + Exporters"
+read -p "Sélectionnez le mode de monitoring (1 ou 2, défaut: 1): " mon_choice
+
+if [[ "$mon_choice" == "2" ]]; then
+    echo "📈 Profil Full Monitoring activé."
+    if ! grep -q "ENABLE_FULL_MONITORING" .env; then
+        echo "ENABLE_FULL_MONITORING=true" >> .env
+    else
+        sed -i.bak "s/ENABLE_FULL_MONITORING=.*/ENABLE_FULL_MONITORING=true/g" .env && rm -f .env.bak
+    fi
+else
+    echo "🚀 Profil Minimal Sandbox activé (léger et économe en RAM)."
+    if ! grep -q "ENABLE_FULL_MONITORING" .env; then
+        echo "ENABLE_FULL_MONITORING=false" >> .env
+    else
+        sed -i.bak "s/ENABLE_FULL_MONITORING=.*/ENABLE_FULL_MONITORING=false/g" .env && rm -f .env.bak
+    fi
+fi
+
+echo ""
+# 4. Choix de l'architecture du projet (Turborepo vs Standard)
 echo "📦 Structure du projet applicatif :"
 echo "L'industrie standardise aujourd'hui autour des Monorepos (ex: Turborepo) pour les projets Fullstack complexes (Next.js + APIs + Packages)."
 read -p "Souhaitez-vous initialiser une structure Monorepo (apps/ & packages/) [Y] ou une structure standard simple [n] ? (Y/n): " repo_struct
@@ -68,4 +87,6 @@ fi
 echo ""
 echo "🎉 Setup terminé ! Vous pouvez maintenant lancer l'infrastructure :"
 echo "   make up"
+echo "    make dashboard   (Ouvre le Chaos Studio & Dashboard sur http://localhost:3010)"
+echo "   make watchdog    (Active la surveillance automatique du failover)"
 echo "================================================================="

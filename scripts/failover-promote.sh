@@ -6,9 +6,11 @@ echo "💥 EMERGENCY DISASTER RECOVERY: FAILOVER PROMOTION"
 echo "================================================================="
 
 TARGET_REPLICA="${1:-balthasar}"
+FORCE_FAILOVER="${2:-false}"
+
 echo "🔍 Checking status of Primary node (melchior)..."
 
-if docker exec melchior pg_isready -U root >/dev/null 2>&1; then
+if [ "$FORCE_FAILOVER" != "true" ] && docker exec melchior pg_isready -U ${POSTGRES_USER:-root} >/dev/null 2>&1; then
     echo "⚠️ WARNING: Melchior Primary node is still responding!"
     echo "If you really want to force failover, stop melchior first (docker stop melchior)."
     read -p "Do you want to force promotion of $TARGET_REPLICA anyway? (y/N) " confirm
@@ -22,7 +24,21 @@ echo "🚀 Promoting replica '$TARGET_REPLICA' to PRIMARY DB..."
 docker exec -i "$TARGET_REPLICA" touch /tmp/promote_signal || docker exec -i "$TARGET_REPLICA" pg_ctl promote
 
 echo "✅ Node '$TARGET_REPLICA' promoted!"
-echo "🔄 Updating PgBouncer connection target..."
-# Note: PgBouncer container can be pointed to the new primary
+
+# 🔄 Update PgBouncer configuration dynamically
+PGBOUNCER_INI="infra/pgbouncer/pgbouncer.ini"
+if [ -f "$PGBOUNCER_INI" ]; then
+    echo "🔄 Updating PgBouncer target to '$TARGET_REPLICA_db'..."
+    TARGET_HOST="${TARGET_REPLICA}_db"
+    sed -i.bak "s/host=[^ ]*/host=$TARGET_HOST/g" "$PGBOUNCER_INI"
+    rm -f "$PGBOUNCER_INI.bak"
+    
+    # Reload PgBouncer if container is running
+    if docker ps --format '{{.Names}}' | grep -q "^pgbouncer$"; then
+        echo "⚡ Reloading PgBouncer configuration at runtime..."
+        docker exec pgbouncer pgbouncer -R /etc/pgbouncer/pgbouncer.ini 2>/dev/null || docker restart pgbouncer >/dev/null 2>&1 || true
+    fi
+fi
+
 echo "ℹ️ New Primary is now: $TARGET_REPLICA"
 echo "================================================================="
