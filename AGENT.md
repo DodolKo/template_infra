@@ -1,0 +1,79 @@
+# Agent IA & Developer Guide - Infrastructure Architecture
+
+Guide d'alignement et référence opérationnelle pour agents IA et développeurs.
+
+---
+
+## 1. Vue d'Ensemble & Mission
+
+Infrastructure haute disponibilité containerisée via Docker Compose :
+- Cluster **PostgreSQL MAGI** (`melchior` Primary, `balthasar` Replica 1, `casper` Replica 2) via réplication WAL.
+- Connection pooler transactionnel **PgBouncer** (`:6432`).
+- Load Balancer TCP **HAProxy** (Écritures `:5000`, Lectures `:5001`).
+- Cache in-memory **Redis** (éviction LRU, persistance AOF).
+- Object Storage compatible S3 **MinIO** (`:9000` API, `:9001` Console).
+- Interface **Adminer** (`:8080`) et dashboard de monitoring custom (`:3010`).
+- Stack de Monitoring optionnelle : **Prometheus** (`:9090`) + **Grafana** (`:3000`).
+
+---
+
+## 2. Éligibilité au Déploiement (Deployment Matrix)
+
+| Environnement / Cas d'Usage | Éligibilité | Note & Recommandation |
+| :--- | :--- | :--- |
+| **Serveur Dédié / VPS Unique (Hetzner, OVH, EC2, Droplet)** | ✅ **Déployable** | Parfait pour 10k-100k DAU. Exécution isolée via Compose ou Swarm. |
+| **Staging / Dev Teams / Local Workstations** | ✅ **Déployable** | Simule 100% une architecture enterprise complexe sans coûts cloud. |
+| **Edge / On-Premise (Datacenter privé)** | ✅ **Déployable** | Idéal pour environnements réglementés ou hors cloud public. |
+| **AWS / GCP / Azure Managed PaaS** | ❌ **Non Recommandé** | Préférer AWS RDS Multi-AZ / Cloud SQL (sauvegardes & failover managés). |
+| **Zero-Downtime Multi-DC Active-Active** | ❌ **Non Recommandé** | Préférer Patroni + Raft/Etcd + IP flottante sur 3 serveurs distants. |
+| **Instances très réduites (< 4 Go RAM)** | ❌ **Non Recommandé** | La stack complète nécessite au moins 4 à 8 Go de RAM sous charge. |
+
+---
+
+## 3. Cartographie de la Documentation (`.docs/architecture/`)
+
+1. **[Cluster de Base de Données MAGI](file://./.docs/architecture/01-database-cluster.md)** : Réplication Primary/Replicas, PgBouncer, init scripts.
+2. **[Routage & Load Balancing HAProxy](file://./.docs/architecture/02-network-loadbalancing.md)** : Règles de routage, ports et stats.
+3. **[Couche Cache & Object Storage](file://./.docs/architecture/03-cache-storage-layer.md)** : Configuration Redis et MinIO.
+4. **[Opérations, Maintenance & Failover](file://./.docs/architecture/04-operations-maintenance.md)** : Commandes, Makefile, scripts de failover et Prometheus/Grafana.
+
+---
+
+## 4. Consignes & Règles d'Or pour Agents IA
+
+1. **Isolation des réseaux & Noms de service** :
+   - Communication via le réseau Docker `infra_network`.
+   - Utiliser les alias de conteneurs (`melchior_db`, `balthasar_db`, `casper_db`, `redis`, `haproxy`, `pgbouncer`, `prometheus`, `grafana`).
+
+2. **Séparation Écritures / Lectures** :
+   - **Écritures (`INSERT`, `UPDATE`, `DELETE`, DDL)** : HAProxy port `5000` (ou `pgbouncer:6432` / `melchior_db:5432`).
+   - **Lectures (`SELECT`)** : HAProxy port `5001` (équilibré entre `balthasar_db` et `casper_db`).
+
+3. **Variables d'Environnement** :
+   - Secrets et mots de passe toujours référencés via `.env`.
+
+4. **Orchestration & CLI** :
+   - Utiliser le `Makefile` (`make up`, `make monitoring`, `make test`, `make failover`).
+
+---
+
+## 5. Matrice des Ports & Services
+
+| Service | Host Port | Container Port | Rôle / Usage |
+| :--- | :--- | :--- | :--- |
+| **HAProxy (Write)** | `5000` | `5000` | Point d'entrée Écritures (-> Melchior) |
+| **HAProxy (Read)** | `5001` | `5001` | Point d'entrée Lectures (-> Balthasar/Casper) |
+| **HAProxy Stats** | `7000` | `7000` | Dashboard Web métriques HAProxy |
+| **PgBouncer** | `6432` | `6432` | Connection Pooler (Transaction mode) |
+| **Melchior DB** | `5432` | `5432` | PostgreSQL Primary Node |
+| **Balthasar DB** | `5433` | `5432` | PostgreSQL Read Replica 1 |
+| **Casper DB** | `5434` | `5432` | PostgreSQL Read Replica 2 |
+| **Redis** | `6379` | `6379` | Cache In-Memory |
+| **MinIO API** | `9000` | `9000` | S3 API Endpoint |
+| **MinIO Console** | `9001` | `9001` | Dashboard Web MinIO |
+| **Adminer** | `8080` | `8080` | Client Web de gestion SQL |
+| **Dashboard Custom** | `3010` | `3010` | Dashboard TUI/Web Node.js |
+| **Prometheus** | `9090` | `9090` | Collecteur de Métriques Infra |
+| **Grafana** | `3000` | `3000` | Tableau de bord de visibilité Grafana |
+| **Postgres Exporter**| `9187` | `9187` | Métriques PostgreSQL |
+| **Redis Exporter** | `9121` | `9121` | Métriques Redis |

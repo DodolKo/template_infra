@@ -1,0 +1,287 @@
+networks:
+  infra_network:
+    driver: bridge
+
+volumes:
+  melchior_data:
+  balthasar_data:
+  casper_data:
+  redis_data:
+  minio_data:
+  prometheus_data:
+  grafana_data:
+
+
+services:
+  # =================================================================
+  # 1. POSTGRESQL PRIMARY NODE (Melchior - Écritures / Master)
+  # =================================================================
+  melchior_db:
+    image: postgres:16-alpine
+    container_name: melchior
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_REPLICATION_USER: ${POSTGRES_REPLICATION_USER}
+      POSTGRES_REPLICATION_PASSWORD: ${POSTGRES_REPLICATION_PASSWORD}
+    command: >
+      postgres
+      -c wal_level=replica
+      -c max_wal_senders=10
+      -c max_replication_slots=10
+      -c hot_standby=on
+      -c hot_standby_feedback=on
+    volumes:
+      - melchior_data:/var/lib/postgresql/data
+      - ./scripts/init-primary.sh:/docker-entrypoint-initdb.d/init-primary.sh
+    networks:
+      - infra_network
+    ports:
+      - "${MELCHIOR_PORT}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # =================================================================
+  # 2. POSTGRESQL READ REPLICA NODE 1 (Balthasar - Read Only)
+  # =================================================================
+  balthasar_db:
+    image: postgres:16-alpine
+    container_name: balthasar
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGPASSWORD: ${POSTGRES_REPLICATION_PASSWORD}
+    entrypoint: >
+      /bin/sh -c "
+      echo 'Waiting for melchior primary node...';
+      until pg_isready -h melchior_db -U ${POSTGRES_USER} -d ${POSTGRES_DB}; do sleep 2; done;
+      if [ ! -s /var/lib/postgresql/data/PG_VERSION ]; then
+        echo 'Cloning primary node via pg_basebackup...';
+        rm -rf /var/lib/postgresql/data/*;
+        pg_basebackup -h melchior_db -D /var/lib/postgresql/data -U ${POSTGRES_REPLICATION_USER} -vP -Fp -Xs -R;
+      fi;
+      exec docker-entrypoint.sh postgres -c hot_standby=on
+      "
+    volumes:
+      - balthasar_data:/var/lib/postgresql/data
+    networks:
+      - infra_network
+    ports:
+      - "${BALTHASAR_PORT}:5432"
+    depends_on:
+      melchior_db:
+        condition: service_healthy
+
+  # =================================================================
+  # 3. POSTGRESQL READ REPLICA NODE 2 (Casper - Read Only)
+  # =================================================================
+  casper_db:
+    image: postgres:16-alpine
+    container_name: casper
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGPASSWORD: ${POSTGRES_REPLICATION_PASSWORD}
+    entrypoint: >
+      /bin/sh -c "
+      echo 'Waiting for melchior primary node...';
+      until pg_isready -h melchior_db -U ${POSTGRES_USER} -d ${POSTGRES_DB}; do sleep 2; done;
+      if [ ! -s /var/lib/postgresql/data/PG_VERSION ]; then
+        echo 'Cloning primary node via pg_basebackup...';
+        rm -rf /var/lib/postgresql/data/*;
+        pg_basebackup -h melchior_db -D /var/lib/postgresql/data -U ${POSTGRES_REPLICATION_USER} -vP -Fp -Xs -R;
+      fi;
+      exec docker-entrypoint.sh postgres -c hot_standby=on
+      "
+    volumes:
+      - casper_data:/var/lib/postgresql/data
+    networks:
+      - infra_network
+    ports:
+      - "${CASPER_PORT}:5432"
+    depends_on:
+      melchior_db:
+        condition: service_healthy
+
+  # =================================================================
+  # 4. REDIS CACHE LAYER (In-Memory Data Store)
+  # =================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - infra_network
+    ports:
+      - "${REDIS_PORT}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # =================================================================
+  # 5. MINIO (Object Storage - S3 Compatible)
+  # =================================================================
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD}
+    ports:
+      - "${MINIO_PORT}:9000"
+      - "${MINIO_CONSOLE_PORT}:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - infra_network
+
+  # =================================================================
+  # 6. HAPROXY (Load Balancer Écritures vs Lectures)
+  # =================================================================
+  haproxy:
+    image: haproxy:2.8-alpine
+    container_name: haproxy
+    restart: unless-stopped
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    ports:
+      - "${HAPROXY_WRITE_PORT}:5000"
+      - "${HAPROXY_READ_PORT}:5001"
+      - "${HAPROXY_STATS_PORT}:7000"
+    networks:
+      - infra_network
+    depends_on:
+      - melchior_db
+      - balthasar_db
+      - casper_db
+
+  # =================================================================
+  # 7. ADMINER (Interface de Gestion SQL)
+  # =================================================================
+  adminer:
+    image: adminer:latest
+    container_name: adminer
+    restart: unless-stopped
+    ports:
+      - "${ADMINER_PORT}:8080"
+    networks:
+      - infra_network
+
+  # =================================================================
+  # 8. PGBOUNCER (Connection Pooler Transactionnel)
+  # =================================================================
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: pgbouncer
+    restart: unless-stopped
+    environment:
+      DB_HOST: melchior_db
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB}
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 2000
+      DEFAULT_POOL_SIZE: 30
+    volumes:
+      - ./pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+    ports:
+      - "6432:6432"
+    networks:
+      - infra_network
+    depends_on:
+      melchior_db:
+        condition: service_healthy
+
+  # =================================================================
+  # 9. PROMETHEUS (Monitoring Metrics Collector)
+  # =================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    profiles: ["monitoring"]
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    networks:
+      - infra_network
+
+  # =================================================================
+  # 10. GRAFANA (Monitoring Dashboards)
+  # =================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    profiles: ["monitoring"]
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards/custom:ro
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    networks:
+      - infra_network
+    depends_on:
+      - prometheus
+
+  # =================================================================
+  # 11. POSTGRES EXPORTER (Database Metrics)
+  # =================================================================
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: postgres_exporter
+    restart: unless-stopped
+    profiles: ["monitoring"]
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@melchior_db:5432/${POSTGRES_DB}?sslmode=disable"
+    ports:
+      - "${POSTGRES_EXPORTER_PORT:-9187}:9187"
+    networks:
+      - infra_network
+    depends_on:
+      melchior_db:
+        condition: service_healthy
+
+  # =================================================================
+  # 12. REDIS EXPORTER (Cache Metrics)
+  # =================================================================
+  redis_exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: redis_exporter
+    restart: unless-stopped
+    profiles: ["monitoring"]
+    environment:
+      REDIS_ADDR: "redis://redis:6379"
+      REDIS_PASSWORD: "${REDIS_PASSWORD}"
+    ports:
+      - "${REDIS_EXPORTER_PORT:-9121}:9121"
+    networks:
+      - infra_network
+    depends_on:
+      - redis
+

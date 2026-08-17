@@ -1,0 +1,2 @@
+"root" "root"
+"replicator" "replica_secret_password"

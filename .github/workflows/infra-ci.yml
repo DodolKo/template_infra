@@ -1,0 +1,41 @@
+name: Infrastructure CI Validation
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  validate-infrastructure:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Start Core Infrastructure
+        run: |
+          cp .env.example .env
+          docker compose up -d
+
+      - name: Wait for PostgreSQL primary to be ready
+        run: |
+          timeout 60s bash -c 'until docker exec melchior pg_isready -U root -d app_db; do sleep 2; done'
+
+      - name: Run Replication Validation
+        run: |
+          chmod +x ./scripts/*.sh
+          ./scripts/test-replication.sh
+
+      - name: Run Load Balancer Validation
+        run: |
+          ./scripts/test-loadbalance.sh
+
+      - name: Teardown Infrastructure
+        if: always()
+        run: |
+          docker compose down -v

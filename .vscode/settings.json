@@ -1,0 +1,16 @@
+{
+  "workbench.iconTheme": "material-icon-theme",
+  "material-icon-theme.folders.associations": {
+    "pgbouncer": "container",
+    "grafana": "television",
+    "prometheus": "container",
+    "haproxy": "server",
+    "backups": "archive",
+    "scripts": "tools",
+    "api": "api",
+    "apps": "app",
+    ".docs": "docs",
+    ".visual": "views"
+
+  }
+}
