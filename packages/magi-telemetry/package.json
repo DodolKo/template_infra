@@ -1,7 +1,0 @@
-{
-  "name": "@magi/telemetry",
-  "version": "1.0.0",
-  "description": "Universal telemetry client for MAGI Control Center",
-  "main": "index.js",
-  "license": "MIT"
-}

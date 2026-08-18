@@ -1,11 +1,11 @@
 {
   "name": "architecture-infra-benchmark",
   "version": "1.0.0",
-  "description": "MAGI Architecture Infrastructure Benchmark Suite & Real-Time Dashboard",
+  "description": "Infrastructure Benchmark Suite & Real-Time Dashboard",
   "main": "dashboard.js",
   "scripts": {
     "start": "node tools/dashboard/dashboard.js",
-    "benchmark": "node scripts/benchmark.js"
+    "benchmark": "node scripts/benchmark/benchmark.js"
   },
   "dependencies": {
     "ioredis": "^5.4.1",

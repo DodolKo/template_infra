@@ -2,23 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
 const Redis = require('ioredis');
-
-// Charger les variables .env
-function loadEnv() {
-  const envPath = path.join(__dirname, '..', '.env');
-  const envVars = {};
-  if (fs.existsSync(envPath)) {
-    const lines = fs.readFileSync(envPath, 'utf8').split('\n');
-    lines.forEach(line => {
-      const trimmed = line.trim();
-      if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
-        const [key, ...vals] = trimmed.split('=');
-        envVars[key.trim()] = vals.join('=').trim();
-      }
-    });
-  }
-  return envVars;
-}
+const { loadEnv } = require('../../tools/dashboard/env-loader');
 
 const env = loadEnv();
 
@@ -26,9 +10,9 @@ const CONFIG = {
   dbUser: env.POSTGRES_USER || 'root',
   dbPassword: env.POSTGRES_PASSWORD || 'root',
   dbName: env.POSTGRES_DB || 'app_db',
-  writePort: parseInt(env.HAPROXY_WRITE_PORT || 5005, 10),
-  readPort: parseInt(env.HAPROXY_READ_PORT || 5006, 10),
-  redisPort: parseInt(env.REDIS_PORT || 6380, 10),
+  writePort: parseInt(env.HAPROXY_WRITE_PORT || 5000, 10),
+  readPort: parseInt(env.HAPROXY_READ_PORT || 5001, 10),
+  redisPort: parseInt(env.REDIS_PORT || 6379, 10),
   redisPassword: env.REDIS_PASSWORD || 'redis_secret_password'
 };
 

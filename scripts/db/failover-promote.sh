@@ -5,6 +5,10 @@ echo "================================================================="
 echo "💥 EMERGENCY DISASTER RECOVERY: FAILOVER PROMOTION"
 echo "================================================================="
 
+if [ -f .env ]; then
+  export $(grep -v '^#' .env | xargs)
+fi
+
 TARGET_REPLICA="${1:-balthasar}"
 FORCE_FAILOVER="${2:-false}"
 
@@ -28,7 +32,7 @@ echo "✅ Node '$TARGET_REPLICA' promoted!"
 # 🔄 Update PgBouncer configuration dynamically
 PGBOUNCER_INI="infra/pgbouncer/pgbouncer.ini"
 if [ -f "$PGBOUNCER_INI" ]; then
-    echo "🔄 Updating PgBouncer target to '$TARGET_REPLICA_db'..."
+    echo "🔄 Updating PgBouncer target to '${TARGET_REPLICA}_db'..."
     TARGET_HOST="${TARGET_REPLICA}_db"
     sed -i.bak "s/host=[^ ]*/host=$TARGET_HOST/g" "$PGBOUNCER_INI"
     rm -f "$PGBOUNCER_INI.bak"

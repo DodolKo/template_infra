@@ -2,9 +2,9 @@
 
 # Se placer dans le répertoire racine du projet
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd "$DIR/.."
+cd "$DIR/../.."
 
-echo "🔄 Redémarrage complet de l'infrastructure DB MAGI..."
+echo "🔄 Redémarrage complet de l'infrastructure..."
 docker compose restart
 
 echo "✅ Infrastructure redémarrée avec succès !"

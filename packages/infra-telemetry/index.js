@@ -1,11 +1,11 @@
 /**
- * 📡 MAGI Telemetry SDK
+ * 📡 Infra Telemetry SDK
  * Module universel zéro-dépendance pour envoyer des métriques et événements
  * depuis n'importe quel projet (Adonis, Express, Fastify, React, Vue, Next.js, Vanilla JS)
- * vers le MAGI Control Center (http://localhost:3010).
+ * vers l'Infra Control Center (http://localhost:3010).
  */
 
-class MagiTelemetry {
+class InfraTelemetry {
   constructor(options = {}) {
     this.endpoint = options.endpoint || 'http://localhost:3010/api/telemetry';
     this.appName = options.appName || 'app-client';
@@ -65,4 +65,4 @@ class MagiTelemetry {
   }
 }
 
-module.exports = MagiTelemetry;
+module.exports = InfraTelemetry;

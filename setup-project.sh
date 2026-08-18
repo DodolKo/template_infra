@@ -2,7 +2,7 @@
 set -e
 
 echo "================================================================="
-echo "🛠️ MAGI INFRASTRUCTURE - PROJECT SETUP WIZARD"
+echo "🛠️ INFRASTRUCTURE ARCHITECTURE - PROJECT SETUP WIZARD"
 echo "================================================================="
 echo "Ce script va préparer l'infrastructure pour un nouveau projet."
 echo ""
@@ -37,8 +37,16 @@ if [[ "$gen_pass" =~ ^[Yy]$ ]]; then
     
     sed -i.bak "s/password=[^ ]*/password=$NEW_PG_PASS/g" infra/pgbouncer/pgbouncer.ini
     rm -f infra/pgbouncer/pgbouncer.ini.bak
+
+    PG_USER=$(grep "^POSTGRES_USER=" .env | cut -d'=' -f2)
+    PG_REP_USER=$(grep "^POSTGRES_REPLICATION_USER=" .env | cut -d'=' -f2)
+    [ -z "$PG_USER" ] && PG_USER="root"
+    [ -z "$PG_REP_USER" ] && PG_REP_USER="replicator"
+
+    echo "\"$PG_USER\" \"$NEW_PG_PASS\"" > infra/pgbouncer/userlist.txt
+    echo "\"$PG_REP_USER\" \"$NEW_PG_REP_PASS\"" >> infra/pgbouncer/userlist.txt
     
-    echo "✅ Mots de passe sécurisés générés et configurés."
+    echo "✅ Mots de passe sécurisés générés et configurés dans .env et PgBouncer."
 else
     echo "⚠️ Utilisation des mots de passe par défaut. Idéal pour du prototypage rapide."
 fi
@@ -56,7 +64,7 @@ else
     echo "📄 Génération des certificats standards pour localhost..."
 fi
 
-./scripts/generate-certs.sh "$CUSTOM_DOMAIN"
+./scripts/ops/generate-certs.sh "$CUSTOM_DOMAIN"
 
 if [ -n "$CUSTOM_DOMAIN" ]; then
     echo "================================================================="

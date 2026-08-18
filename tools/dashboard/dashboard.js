@@ -4,23 +4,8 @@ const net = require('net');
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
-const BenchmarkEngine = require('../../scripts/benchmark');
-
-function loadEnv() {
-  const envPath = fs.existsSync(path.join(__dirname, '../../.env')) ? path.join(__dirname, '../../.env') : path.join(process.cwd(), '.env');
-  const envVars = {};
-  if (fs.existsSync(envPath)) {
-    const lines = fs.readFileSync(envPath, 'utf8').split('\n');
-    lines.forEach(line => {
-      const trimmed = line.trim();
-      if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
-        const [key, ...vals] = trimmed.split('=');
-        envVars[key.trim()] = vals.join('=').trim();
-      }
-    });
-  }
-  return envVars;
-}
+const BenchmarkEngine = require('../../scripts/benchmark/benchmark');
+const { loadEnv } = require('./env-loader');
 
 const env = loadEnv();
 const PORT = env.DASHBOARD_PORT || 3010;
@@ -75,7 +60,7 @@ function toggleWatchdog(enable) {
   if (enable && !watchdogActive) {
     watchdogActive = true;
     logAuditEvent('🛡️ Failover Watchdog Daemon ACTIVÉ.');
-    watchdogProcess = exec('bash scripts/failover-watchdog.sh');
+    watchdogProcess = exec('bash scripts/db/failover-watchdog.sh');
     watchdogProcess.stdout.on('data', data => {
       data.toString().split('\n').filter(Boolean).forEach(line => {
         logAuditEvent(line);
@@ -320,7 +305,7 @@ const server = http.createServer((req, res) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MAGI Infra - Chaos Studio & Dashboard</title>
+  <title>Infra Architecture - Chaos Studio & Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Doto:wght@900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -902,17 +887,16 @@ const dualServer = net.createServer((socket) => {
 
 dualServer.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    console.error(`⚠️ MAGI Control Center: Port ${PORT} est déjà occupé par un autre processus.`);
+    console.error(`⚠️ Infra Control Center: Port ${PORT} est déjà occupé par un autre processus.`);
     console.error(`👉 Tuez l'instance existante avec: kill -9 $(lsof -t -i:${PORT}) puis relancez 'make dashboard'.`);
-    process.exit(1);
   } else {
-    console.error(err);
+    console.error(`⚠️ Server Error: ${err.message}`);
   }
 });
 
 dualServer.listen(PORT, () => {
   console.log(`=================================================================`);
-  console.log(`🚀 MAGI Control Center running with DUAL HTTP / HTTPS support:`);
+  console.log(`🚀 Infra Control Center running with DUAL HTTP / HTTPS support:`);
   console.log(`   - HTTP  : http://localhost:${PORT}`);
   if (httpsServer) {
     console.log(`   - HTTPS : https://localhost:${PORT}`);

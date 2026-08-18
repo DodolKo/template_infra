@@ -6,7 +6,7 @@
 
 help:
 	@echo "================================================================="
-	@echo "🛠️ INFRASTRUCTURE MAGI ARCHITECTURE - COMMAND COMMANDS"
+	@echo "🛠️ INFRASTRUCTURE ARCHITECTURE - COMMAND CLI"
 	@echo "================================================================="
 	@echo "  make up          - Start core infrastructure (Postgres HA, PgBouncer, HAProxy, Redis, MinIO)"
 	@echo "  make monitoring  - Start infrastructure WITH Prometheus & Grafana Monitoring"
@@ -15,7 +15,7 @@ help:
 	@echo "  make status      - Display container health and running ports"
 	@echo "  make test        - Run replication & load balancing validation tests"
 	@echo "  make benchmark   - Run load test benchmark engine"
-	@echo "  make dashboard   - Launch MAGI Control Center (Dual HTTP/HTTPS on port 3010)"
+	@echo "  make dashboard   - Launch Infra Control Center (Dual HTTP/HTTPS on port 3010)"
 	@echo "  make watchdog    - Start automatic failover monitoring daemon"
 	@echo "  make certs       - Generate local self-signed SSL/TLS certificates"
 	@echo "  make failover    - Trigger emergency failover promotion script"
@@ -37,7 +37,7 @@ down:
 
 restart:
 	@echo "🔄 Restarting infrastructure..."
-	./scripts/restart.sh
+	@./scripts/ops/restart.sh
 
 status:
 	@echo "📊 Container Status:"
@@ -45,8 +45,8 @@ status:
 
 test:
 	@echo "🧪 Running validation tests..."
-	@./scripts/test-replication.sh
-	@./scripts/test-loadbalance.sh
+	@./scripts/db/test-replication.sh
+	@./scripts/benchmark/test-loadbalance.sh
 
 benchmark:
 	@echo "⚡ Running load benchmark suite..."
@@ -58,19 +58,19 @@ dashboard:
 
 watchdog:
 	@echo "🛡️ Starting Automatic Failover Watchdog..."
-	@./scripts/failover-watchdog.sh
+	@./scripts/db/failover-watchdog.sh
 
 certs:
 	@echo "🔐 Generating local TLS certificates..."
-	@./scripts/generate-certs.sh
+	@./scripts/ops/generate-certs.sh
 
 failover:
 	@echo "💥 Triggering failover promotion script..."
-	@./scripts/failover-promote.sh balthasar
+	@./scripts/db/failover-promote.sh balthasar
 
 backup:
 	@echo "💾 Executing PostgreSQL backup..."
-	@./scripts/backup-db.sh
+	@./scripts/db/backup.sh
 
 clean:
 	@echo "⚠️ Cleaning all containers, networks, and persistent data volumes..."

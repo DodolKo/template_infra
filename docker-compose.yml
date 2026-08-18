@@ -35,7 +35,7 @@ services:
       -c hot_standby_feedback=on
     volumes:
       - melchior_data:/var/lib/postgresql/data
-      - ./scripts/init-primary.sh:/docker-entrypoint-initdb.d/init-primary.sh
+      - ./scripts/db/init-primary.sh:/docker-entrypoint-initdb.d/init-primary.sh
     networks:
       - infra_network
     ports:

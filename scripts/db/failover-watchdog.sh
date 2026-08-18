@@ -1,6 +1,6 @@
 #!/bin/bash
 # =================================================================
-# 🛡️ MAGI INFRASTRUCTURE - FAILOVER WATCHDOG DAEMON
+# 🛡️ INFRASTRUCTURE - FAILOVER WATCHDOG DAEMON
 # Surveillance en temps réel du Master PostgreSQL et Bascule Auto
 # =================================================================
 
@@ -39,7 +39,7 @@ while true; do
         fi
         
         echo "🚀 Automatic failover target selected: $CANDIDATE"
-        ./scripts/failover-promote.sh "$CANDIDATE" "true"
+        ./scripts/db/failover-promote.sh "$CANDIDATE" "true"
         
         CURRENT_PRIMARY="$CANDIDATE"
         FAIL_COUNT=0

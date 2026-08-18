@@ -2,7 +2,7 @@
 set -e
 
 # =================================================================
-# 🔒 MAGI INFRASTRUCTURE - SELF-SIGNED TLS CERTIFICATE GENERATOR
+# 🔒 INFRASTRUCTURE - SELF-SIGNED TLS CERTIFICATE GENERATOR
 # =================================================================
 
 CERTS_DIR="infra/certs"
@@ -36,14 +36,14 @@ openssl req -x509 -newkey rsa:2048 -nodes \
   -keyout "$SERVER_KEY" \
   -out "$SERVER_CRT" \
   -days 365 \
-  -subj "/CN=$CN_NAME/O=MAGI Infra Local/C=FR" \
+  -subj "/CN=$CN_NAME/O=Infra Local/C=FR" \
   -addext "$SAN_EXT" \
   2>/dev/null || \
 openssl req -x509 -newkey rsa:2048 -nodes \
   -keyout "$SERVER_KEY" \
   -out "$SERVER_CRT" \
   -days 365 \
-  -subj "/CN=$CN_NAME/O=MAGI Infra Local/C=FR" 2>/dev/null
+  -subj "/CN=$CN_NAME/O=Infra Local/C=FR" 2>/dev/null
 
 # Combined PEM file for HAProxy TLS offloading
 cat "$SERVER_CRT" "$SERVER_KEY" > "$HAPROXY_PEM"
