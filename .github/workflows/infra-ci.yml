@@ -22,9 +22,11 @@ jobs:
           cp .env.example .env
           docker compose up -d
 
-      - name: Wait for PostgreSQL primary to be ready
+      - name: Wait for PostgreSQL cluster to be ready
         run: |
-          timeout 60s bash -c 'until docker exec melchior pg_isready -U root -d app_db; do sleep 2; done'
+          timeout 60s bash -c 'until docker exec melchior pg_isready -U postgres_admin -d app_db; do sleep 2; done'
+          timeout 60s bash -c 'until docker exec balthasar pg_isready -U postgres_admin -d app_db; do sleep 2; done'
+          timeout 60s bash -c 'until docker exec casper pg_isready -U postgres_admin -d app_db; do sleep 2; done'
 
       - name: Make scripts executable
         run: |

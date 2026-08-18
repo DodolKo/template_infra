@@ -6,7 +6,9 @@ echo "💥 EMERGENCY DISASTER RECOVERY: FAILOVER PROMOTION"
 echo "================================================================="
 
 if [ -f .env ]; then
-  export $(grep -v '^#' .env | xargs)
+  set -a
+  source .env
+  set +a
 fi
 
 TARGET_REPLICA="${1:-balthasar}"
@@ -14,7 +16,7 @@ FORCE_FAILOVER="${2:-false}"
 
 echo "🔍 Checking status of Primary node (melchior)..."
 
-if [ "$FORCE_FAILOVER" != "true" ] && docker exec melchior pg_isready -U ${POSTGRES_USER:-root} >/dev/null 2>&1; then
+if [ "$FORCE_FAILOVER" != "true" ] && docker exec melchior pg_isready -U ${POSTGRES_USER:-postgres_admin} >/dev/null 2>&1; then
     echo "⚠️ WARNING: Melchior Primary node is still responding!"
     echo "If you really want to force failover, stop melchior first (docker stop melchior)."
     read -p "Do you want to force promotion of $TARGET_REPLICA anyway? (y/N) " confirm

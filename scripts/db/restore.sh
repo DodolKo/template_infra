@@ -5,10 +5,12 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$DIR/../.."
 
 if [ -f .env ]; then
-  export $(grep -v '^#' .env | xargs)
+  set -a
+  source .env
+  set +a
 fi
 
-PG_USER="${POSTGRES_USER:-root}"
+PG_USER="${POSTGRES_USER:-postgres_admin}"
 PG_DB="${POSTGRES_DB:-app_db}"
 
 BACKUP_FILE=$1

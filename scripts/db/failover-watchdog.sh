@@ -17,7 +17,7 @@ while true; do
     IS_RUNNING=$(docker inspect -f '{{.State.Running}}' "$CURRENT_PRIMARY" 2>/dev/null || echo "false")
     
     if [ "$IS_RUNNING" = "true" ]; then
-        if docker exec "$CURRENT_PRIMARY" pg_isready -U ${POSTGRES_USER:-root} >/dev/null 2>&1; then
+        if docker exec "$CURRENT_PRIMARY" pg_isready -U ${POSTGRES_USER:-postgres_admin} >/dev/null 2>&1; then
             FAIL_COUNT=0
         else
             FAIL_COUNT=$((FAIL_COUNT + 1))

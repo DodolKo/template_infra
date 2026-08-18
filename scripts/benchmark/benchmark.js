@@ -7,8 +7,8 @@ const { loadEnv } = require('../../tools/dashboard/env-loader');
 const env = loadEnv();
 
 const CONFIG = {
-  dbUser: env.POSTGRES_USER || 'root',
-  dbPassword: env.POSTGRES_PASSWORD || 'root',
+  dbUser: env.POSTGRES_USER || 'postgres_admin',
+  dbPassword: env.POSTGRES_PASSWORD || 'postrgres_secret_password',
   dbName: env.POSTGRES_DB || 'app_db',
   writePort: parseInt(env.HAPROXY_WRITE_PORT || 5000, 10),
   readPort: parseInt(env.HAPROXY_READ_PORT || 5001, 10),
