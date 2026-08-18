@@ -2,7 +2,7 @@
 # INFRASTRUCTURE ARCHITECTURE - UNIFIED COMMAND CLI
 # =================================================================
 
-.PHONY: help up down restart status test benchmark failover watchdog dashboard backup clean
+.PHONY: help up down restart status test benchmark failover watchdog dashboard certs backup clean
 
 help:
 	@echo "================================================================="
@@ -15,8 +15,9 @@ help:
 	@echo "  make status      - Display container health and running ports"
 	@echo "  make test        - Run replication & load balancing validation tests"
 	@echo "  make benchmark   - Run load test benchmark engine"
-	@echo "  make dashboard   - Launch local Chaos Studio & Web dashboard (http://localhost:3010)"
+	@echo "  make dashboard   - Launch MAGI Control Center (Dual HTTP/HTTPS on port 3010)"
 	@echo "  make watchdog    - Start automatic failover monitoring daemon"
+	@echo "  make certs       - Generate local self-signed SSL/TLS certificates"
 	@echo "  make failover    - Trigger emergency failover promotion script"
 	@echo "  make backup      - Create a logical backup of PostgreSQL primary"
 	@echo "  make clean       - Stop containers and remove volumes (DESTRUCTIVE)"
@@ -58,6 +59,10 @@ dashboard:
 watchdog:
 	@echo "🛡️ Starting Automatic Failover Watchdog..."
 	@./scripts/failover-watchdog.sh
+
+certs:
+	@echo "🔐 Generating local TLS certificates..."
+	@./scripts/generate-certs.sh
 
 failover:
 	@echo "💥 Triggering failover promotion script..."

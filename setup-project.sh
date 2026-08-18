@@ -44,7 +44,11 @@ else
 fi
 
 echo ""
-# 3. Profil de Monitoring & Dashboard
+# 3. Génération des Certificats SSL/TLS pour Dev Local
+./scripts/generate-certs.sh
+
+echo ""
+# 4. Profil de Monitoring & Dashboard
 echo "📊 Profil de Monitoring & Consommation Mémoire :"
 echo "1) Minimal Sandbox (Recommandé) : DB Cluster + Redis + MinIO + Dashboard Minimal (:3010)"
 echo "2) Full Stack Monitoring : Inclut Prometheus (:9090) + Grafana (:3000) + Exporters"

@@ -1,4 +1,6 @@
 const http = require('http');
+const https = require('https');
+const net = require('net');
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
@@ -871,6 +873,49 @@ const server = http.createServer((req, res) => {
   `);
 });
 
-server.listen(PORT, () => {
-  console.log(`Status, Chaos & Benchmark Dashboard running on http://localhost:${PORT}`);
+const certPath = path.join(__dirname, '../../infra/certs/server.crt');
+const keyPath = path.join(__dirname, '../../infra/certs/server.key');
+
+let httpsServer = null;
+if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
+  try {
+    const options = {
+      key: fs.readFileSync(keyPath),
+      cert: fs.readFileSync(certPath)
+    };
+    httpsServer = https.createServer(options, server.listeners('request')[0]);
+  } catch (err) {
+    console.error('⚠️ Notice: TLS certs loading error:', err.message);
+  }
+}
+
+const dualServer = net.createServer((socket) => {
+  socket.once('data', (buffer) => {
+    socket.unshift(buffer);
+    if (buffer[0] === 0x16 && httpsServer) {
+      httpsServer.emit('connection', socket);
+    } else {
+      server.emit('connection', socket);
+    }
+  });
+});
+
+dualServer.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`⚠️ MAGI Control Center: Port ${PORT} est déjà occupé par un autre processus.`);
+    console.error(`👉 Tuez l'instance existante avec: kill -9 $(lsof -t -i:${PORT}) puis relancez 'make dashboard'.`);
+    process.exit(1);
+  } else {
+    console.error(err);
+  }
+});
+
+dualServer.listen(PORT, () => {
+  console.log(`=================================================================`);
+  console.log(`🚀 MAGI Control Center running with DUAL HTTP / HTTPS support:`);
+  console.log(`   - HTTP  : http://localhost:${PORT}`);
+  if (httpsServer) {
+    console.log(`   - HTTPS : https://localhost:${PORT}`);
+  }
+  console.log(`=================================================================`);
 });
