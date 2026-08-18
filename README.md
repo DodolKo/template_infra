@@ -5,7 +5,21 @@
 ![HAProxy](https://img.shields.io/badge/HAProxy-000000?style=for-the-badge&logo=haproxy&logoColor=white)
 ![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)
 ![NodeJS](https://img.shields.io/badge/NodeJS-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
-![License](https://img.shields.io/badge/Status-Active_Sandbox-brightgreen?style=for-the-badge)
+![License](https://img.shields.io/badge/Status-Sandbox_Experimental-orange?style=for-the-badge)
+
+> [!WARNING]
+> **⚠️ AVERTISSEMENT IMPORTANT - UTILISATION EN PRODUCTION**
+> 
+> **Ce projet est actuellement un environnement de test, de prototypage et de Chaos Engineering.**
+> En l'état actuel (et jusqu'à nouvel ordre explicite), **ce dépôt N'EST PAS une base saine ni recommandée pour un déploiement direct en production**.
+> 
+> Plusieurs points d'architecture et de durcissement restent à corriger et à valider avant tout usage en environnement critique :
+> - 🔒 **Gestion des Secrets & Sécurité** : Migration des secrets `.env` locaux vers un gestionnaire de clés/secrets (Vault / AWS Secrets Manager).
+> - 📜 **Certificats SSL/TLS** : Utilisation de certificats de production validés (ACME/Let's Encrypt) au lieu de certs auto-signés locaux.
+> - 🌐 **Failover Inter-DC & Orchestration** : Mise en place d'un consensus distribué complet (ex: Patroni + Raft/Etcd + IP flottante VIP) pour éviter tout SPOF sur un hôte unique.
+> - 💾 **Sauvegardes & Restauration (PRA/PCA)** : Automatisation des sauvegardes déportées et chiffrées avec stratégie de rétention multi-régions.
+>
+> Ce projet demeure une excellente base de travail pour le **développement local, le staging, le prototypage rapide et l'expérimentation d'architectures HA**.
 
 ## 📌 À propos du Projet
 
@@ -84,12 +98,15 @@ Le Dashboard intègre un studio interactif pour tester la résilience de l'infra
 
 ```bash
 make help        # Afficher la liste complète des commandes
+make ai-start    # 🤖 AI Runner : Démarrer et valider l'infra en 1 seule commande
+make verify      # Exécuter la suite complète de diagnostics de santé
 make up          # Lancer l'infrastructure de base
 make dashboard   # Lancer le Chaos Studio Web (http://localhost:3010)
 make watchdog    # Lancer le démon de surveillance auto du failover
 make status      # Vérifier l'état et la santé des conteneurs
 make test        # Exécuter les tests de validation de réplication & load balance
 make benchmark   # Lancer une suite de tests de charge (RPS & Latence)
+make certs       # Générer les certificats SSL/TLS locaux
 make backup      # Déclencher une sauvegarde logique vers le stockage S3 MinIO
 make down        # Arrêter tous les conteneurs
 make clean       # Tout arrêter et nettoyer les volumes de données (DESTRUCTIF)
