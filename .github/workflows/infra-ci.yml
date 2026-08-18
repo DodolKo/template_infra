@@ -26,14 +26,18 @@ jobs:
         run: |
           timeout 60s bash -c 'until docker exec melchior pg_isready -U root -d app_db; do sleep 2; done'
 
+      - name: Make scripts executable
+        run: |
+          find ./scripts -type f -name "*.sh" -exec chmod +x {} +
+          chmod +x ./setup-project.sh
+
       - name: Run Replication Validation
         run: |
-          chmod +x ./scripts/*.sh
-          ./scripts/test-replication.sh
+          ./scripts/db/test-replication.sh
 
       - name: Run Load Balancer Validation
         run: |
-          ./scripts/test-loadbalance.sh
+          ./scripts/benchmark/test-loadbalance.sh
 
       - name: Teardown Infrastructure
         if: always()
