@@ -182,9 +182,9 @@ const server = http.createServer((req, res) => {
         res.end(JSON.stringify({ status: 'error', message: err.message }));
       } else {
         logAuditEvent('🔥 Nœud \'' + node + '\' ARRÊTÉ avec succès.');
-        
+
         if (chaosTimers[node]) clearTimeout(chaosTimers[node]);
-        
+
         if (duration > 0) {
           logAuditEvent('⏱️ Programmation du redémarrage auto de \'' + node + '\' dans ' + duration + ' secondes...');
           chaosTimers[node] = setTimeout(() => {
