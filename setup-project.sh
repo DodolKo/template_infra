@@ -44,8 +44,31 @@ else
 fi
 
 echo ""
-# 3. Génération des Certificats SSL/TLS pour Dev Local
-./scripts/generate-certs.sh
+# 3. Configuration du Domaine Local et Certificats SSL/TLS
+echo "🌍 Configuration d'un domaine local (Fake URL)"
+read -p "Souhaitez-vous configurer un domaine local personnalisé (ex: dashboard.infra.com) ? [y/N]: " custom_domain_choice
+
+CUSTOM_DOMAIN=""
+if [[ "$custom_domain_choice" =~ ^[Yy]$ ]]; then
+    read -p "Entrez votre domaine (ex: dashboard.infra.com): " CUSTOM_DOMAIN
+    echo "📄 Génération des certificats avec injection du domaine : $CUSTOM_DOMAIN..."
+else
+    echo "📄 Génération des certificats standards pour localhost..."
+fi
+
+./scripts/generate-certs.sh "$CUSTOM_DOMAIN"
+
+if [ -n "$CUSTOM_DOMAIN" ]; then
+    echo "================================================================="
+    echo "⚠️ ACTION MANUELLE REQUISE POUR LE DOMAINE '$CUSTOM_DOMAIN' :"
+    echo "1. Ajoutez la ligne suivante dans votre fichier /etc/hosts :"
+    echo "   127.0.0.1   $CUSTOM_DOMAIN"
+    echo "   (Commande recommandée : sudo sh -c 'echo \"127.0.0.1   $CUSTOM_DOMAIN\" >> /etc/hosts')"
+    echo ""
+    echo "2. Faites confiance au certificat auto-signé sur votre machine :"
+    echo "   (MacOS) : sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain infra/certs/server.crt"
+    echo "================================================================="
+fi
 
 echo ""
 # 4. Profil de Monitoring & Dashboard

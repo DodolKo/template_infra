@@ -2,12 +2,14 @@
 # INFRASTRUCTURE ARCHITECTURE - UNIFIED COMMAND CLI
 # =================================================================
 
-.PHONY: help up down restart status test benchmark failover watchdog dashboard certs backup clean
+.PHONY: help up down restart status test benchmark failover watchdog dashboard certs backup clean ai-start verify
 
 help:
 	@echo "================================================================="
 	@echo "🛠️ INFRASTRUCTURE MAGI ARCHITECTURE - COMMAND COMMANDS"
 	@echo "================================================================="
+	@echo "  make ai-start    - 🤖 AI Runner: Launch & auto-validate everything in 1 command"
+	@echo "  make verify      - Run complete AI/Dev diagnostic check suite"
 	@echo "  make up          - Start core infrastructure (Postgres HA, PgBouncer, HAProxy, Redis, MinIO)"
 	@echo "  make monitoring  - Start infrastructure WITH Prometheus & Grafana Monitoring"
 	@echo "  make down        - Stop all running containers"
@@ -17,6 +19,8 @@ help:
 	@echo "  make benchmark   - Run load test benchmark engine"
 	@echo "  make dashboard   - Launch MAGI Control Center (Dual HTTP/HTTPS on port 3010)"
 	@echo "  make watchdog    - Start automatic failover monitoring daemon"
+	@echo "  make proxy       - Start secure local TCP proxy (requires sudo)"
+	@echo "  make proxy-stop  - Stop the secure local proxy"
 	@echo "  make certs       - Generate local self-signed SSL/TLS certificates"
 	@echo "  make failover    - Trigger emergency failover promotion script"
 	@echo "  make backup      - Create a logical backup of PostgreSQL primary"
@@ -43,10 +47,7 @@ status:
 	@echo "📊 Container Status:"
 	@docker compose ps
 
-test:
-	@echo "🧪 Running validation tests..."
-	@./scripts/test-replication.sh
-	@./scripts/test-loadbalance.sh
+test: verify
 
 benchmark:
 	@echo "⚡ Running load benchmark suite..."
@@ -59,6 +60,14 @@ dashboard:
 watchdog:
 	@echo "🛡️ Starting Automatic Failover Watchdog..."
 	@./scripts/failover-watchdog.sh
+
+proxy:
+	@echo "🛡️ Starting interactive TCP proxy setup..."
+	@./scripts/start-proxy.sh
+
+proxy-stop:
+	@echo "🛑 Stopping secure proxy..."
+	@if [ -f .proxy.pid ]; then sudo kill -9 `cat .proxy.pid` 2>/dev/null || true; sudo rm -f .proxy.pid; echo "✅ Proxy stopped."; else echo "⚠️ No .proxy.pid found."; fi
 
 certs:
 	@echo "🔐 Generating local TLS certificates..."
@@ -75,3 +84,9 @@ backup:
 clean:
 	@echo "⚠️ Cleaning all containers, networks, and persistent data volumes..."
 	docker compose --profile monitoring down -v
+
+ai-start: verify
+
+verify:
+	@./scripts/verify.sh
+

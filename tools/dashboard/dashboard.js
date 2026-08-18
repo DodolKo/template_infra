@@ -23,7 +23,7 @@ function loadEnv() {
 }
 
 const env = loadEnv();
-const PORT = env.DASHBOARD_PORT || 3010;
+const PORT = parseInt(env.DASHBOARD_PORT || '3010', 10);
 
 const CONTAINERS = [
   { name: 'melchior', role: 'PostgreSQL Primary Master (Write)' },
@@ -876,46 +876,48 @@ const server = http.createServer((req, res) => {
 const certPath = path.join(__dirname, '../../infra/certs/server.crt');
 const keyPath = path.join(__dirname, '../../infra/certs/server.key');
 
-let httpsServer = null;
+const tls = require('tls');
+
+let appServer = server;
+let isHttps = false;
+
 if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
   try {
-    const options = {
-      key: fs.readFileSync(keyPath),
-      cert: fs.readFileSync(certPath)
-    };
-    httpsServer = https.createServer(options, server.listeners('request')[0]);
+    const key = fs.readFileSync(keyPath);
+    const cert = fs.readFileSync(certPath);
+    appServer = https.createServer({ key, cert }, server.listeners('request')[0]);
+    isHttps = true;
   } catch (err) {
     console.error('⚠️ Notice: TLS certs loading error:', err.message);
   }
 }
 
-const dualServer = net.createServer((socket) => {
-  socket.once('data', (buffer) => {
-    socket.unshift(buffer);
-    if (buffer[0] === 0x16 && httpsServer) {
-      httpsServer.emit('connection', socket);
-    } else {
-      server.emit('connection', socket);
-    }
-  });
-});
+let currentPort = PORT;
 
-dualServer.on('error', (err) => {
+appServer.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    console.error(`⚠️ MAGI Control Center: Port ${PORT} est déjà occupé par un autre processus.`);
-    console.error(`👉 Tuez l'instance existante avec: kill -9 $(lsof -t -i:${PORT}) puis relancez 'make dashboard'.`);
-    process.exit(1);
+    console.warn(`⚠️ Port ${currentPort} occupé, tentative sur le port ${currentPort + 1}...`);
+    currentPort++;
+    if (currentPort - PORT > 10) {
+      console.error(`❌ Impossible de trouver un port libre après 10 tentatives.`);
+      process.exit(1);
+    }
+    appServer.listen(currentPort);
   } else {
     console.error(err);
   }
 });
 
-dualServer.listen(PORT, () => {
+appServer.listen(currentPort, () => {
+  const portFilePath = path.join(__dirname, '../../.dashboard.port');
+  fs.writeFileSync(portFilePath, currentPort.toString(), 'utf8');
+  
   console.log(`=================================================================`);
-  console.log(`🚀 MAGI Control Center running with DUAL HTTP / HTTPS support:`);
-  console.log(`   - HTTP  : http://localhost:${PORT}`);
-  if (httpsServer) {
-    console.log(`   - HTTPS : https://localhost:${PORT}`);
+  console.log(`🚀 MAGI Control Center running on port ${currentPort}:`);
+  if (isHttps) {
+    console.log(`   - HTTPS : https://localhost:${currentPort}`);
+  } else {
+    console.log(`   - HTTP  : http://localhost:${currentPort}`);
   }
   console.log(`=================================================================`);
 });
