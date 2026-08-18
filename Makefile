@@ -2,14 +2,12 @@
 # INFRASTRUCTURE ARCHITECTURE - UNIFIED COMMAND CLI
 # =================================================================
 
-.PHONY: help up down restart status test benchmark failover watchdog dashboard certs backup clean ai-start verify
+.PHONY: help up down restart status test benchmark failover watchdog dashboard certs backup clean
 
 help:
 	@echo "================================================================="
 	@echo "🛠️ INFRASTRUCTURE MAGI ARCHITECTURE - COMMAND COMMANDS"
 	@echo "================================================================="
-	@echo "  make ai-start    - 🤖 AI Runner: Launch & auto-validate everything in 1 command"
-	@echo "  make verify      - Run complete system diagnostic check suite"
 	@echo "  make up          - Start core infrastructure (Postgres HA, PgBouncer, HAProxy, Redis, MinIO)"
 	@echo "  make monitoring  - Start infrastructure WITH Prometheus & Grafana Monitoring"
 	@echo "  make down        - Stop all running containers"
@@ -77,10 +75,4 @@ backup:
 clean:
 	@echo "⚠️ Cleaning all containers, networks, and persistent data volumes..."
 	docker compose --profile monitoring down -v
-
-ai-start: verify
-
-verify:
-	@chmod +x ./scripts/verify.sh
-	@./scripts/verify.sh
 

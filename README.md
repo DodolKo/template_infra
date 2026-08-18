@@ -98,8 +98,6 @@ Le Dashboard intègre un studio interactif pour tester la résilience de l'infra
 
 ```bash
 make help        # Afficher la liste complète des commandes
-make ai-start    # 🤖 AI Runner : Démarrer et valider l'infra en 1 seule commande
-make verify      # Exécuter la suite complète de diagnostics de santé
 make up          # Lancer l'infrastructure de base
 make dashboard   # Lancer le Chaos Studio Web (http://localhost:3010)
 make watchdog    # Lancer le démon de surveillance auto du failover

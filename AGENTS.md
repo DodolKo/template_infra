@@ -58,9 +58,9 @@ Si un utilisateur vous demande de démarrer un nouveau projet (ex: Knotly.link 2
 3. **Variables d'Environnement** :
    - Secrets et mots de passe toujours référencés via `.env`. Le `.env.example` sert de base.
 
-4. **Orchestration & CLI** :
-   - Utiliser le `Makefile` (`make ai-start`, `make up`, `make monitoring`, `make test`, `make failover`).
-   - **RÈGLE D'OR IA - DÉMARRAGE RAPIDE** : Pour démarrer et tout valider sans multiplier les requêtes, l'Agent IA DOIT exécuter en 1 seule commande : `make ai-start`. Cela démarre la stack, vérifie tous les conteneurs, teste la réplication WAL, valide HAProxy / PgBouncer / Redis / MinIO, et affiche le bilan complet ainsi que les fonctionnalités expérimentales suggérées.
+4. **Orchestration & CLI (AUCUNE COMMANDE NI SCRIPT EXCLUSIF IA)** :
+   - L'Agent IA utilise **strictement et exclusivement** les mêmes commandes standard du `Makefile` que tout développeur humain (`make up`, `make status`, `make test`, `make monitoring`, `make down`, `make help`).
+   - **INTERDICTION STRICTE DE CRÉER OU D'UTILISER DES SCRIPTS OU COMMANDES CUSTOM DÉDIÉS À L'IA** : L'IA ne dispose d'aucune commande ni script exclusif. Toute gestion, démarrage ou vérification de l'infrastructure se fait en utilisant l'outillage global du projet.
 
 5. **Sécurité & Intégrité de la Machine Hôte (INTERDICTION STRICTE DE SUDO ET CONTOURNEMENT SYSTEME)** :
    - L'Agent IA a l'**INTERDICTION STRICTE** d'essayer d'exécuter automatiquement des commandes nécessitant des privilèges root/administrateur (`sudo`), de modifier les fichiers système de la machine hôte (ex: `/etc/hosts`, trousseaux de clés Keychain macOS) ou de chercher des bricolages/contournements de ports système.
